@@ -100,5 +100,39 @@ describe('Utils', () => {
       expect(actual).toHaveLength(3)
       expect(actual).toStrictEqual(['1', '1.1', '1.1.1'])
     })
+
+    it('should throw an error if there is a cycle parent/children on depth 1', () => {
+      const input: Item[] = [
+        {
+          id: '1',
+          children: [],
+          parent: '1',
+        },
+        { id: '2', children: [] },
+      ]
+
+      const expected = 'Cycle parent/children found for item: 1'
+      expect(() => utils.composedPath(input, '1')).toThrowError(expected)
+    })
+
+    it('should throw an error if there is a cycle parent/children on depth N', () => {
+      const input: Item[] = [
+        {
+          id: '1',
+          children: [
+            {
+              id: '1.1',
+              parent: '1',
+              children: [{ id: '1.1.1', parent: '1.1', children: [] }],
+            },
+          ],
+          parent: '1.1.1',
+        },
+        { id: '2', children: [] },
+      ]
+
+      const expected = 'Cycle parent/children found for item: 1'
+      expect(() => utils.composedPath(input, '1.1.1')).toThrowError(expected)
+    })
   })
 })

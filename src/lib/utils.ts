@@ -1,3 +1,4 @@
+import memoize from 'lodash.memoize'
 import type { Item } from './types'
 
 export function flatten<I extends Item = Item>(items: I[]): I[] {
@@ -9,13 +10,30 @@ export function flatten<I extends Item = Item>(items: I[]): I[] {
   return [...items, ...flatten(children)]
 }
 
+const memoizedFlatten = memoize(flatten)
+
+function checkCycle<I extends Item = Item>(items: I[]) {
+  const flatItems = memoizedFlatten(items)
+
+  for (let index = 0; index < flatItems.length; index += 1) {
+    const item = flatItems[index]
+    if (item.parent) {
+      const children = memoizedFlatten(item.children).map(i => i.id)
+      if (item.id === item.parent || children.includes(item.parent)) {
+        throw new Error(`Cycle parent/children found for item: ${item.id}`)
+      }
+    }
+  }
+}
+
 export function composedPath<I extends Item = Item>(
   items: I[],
   id?: I['id'],
 ): Array<I['id']> {
   if (!id) return []
-  const flatItems = flatten(items)
+  const flatItems = memoizedFlatten(items)
   const item = flatItems.find(i => i.id === id)
+  checkCycle(items)
   if (!item) return []
   return [...composedPath(items, item.parent), id]
 }
