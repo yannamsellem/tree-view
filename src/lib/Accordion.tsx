@@ -4,35 +4,34 @@ import { type Item } from './types'
 import { composedPath } from './utils'
 
 import './Accordion.css'
+import { useIsExpanded } from './ExpandContext'
 
-interface Props<I extends Item = Item> {
-  expandedItems?: I['id'][]
+interface Props<I extends Item> {
   items: I[]
   item: I
-  onChange?: (itemComposedPath: I['id'][], item: I) => void
-  renderItem?: (item: I, expanded: boolean) => React.ReactNode
+  onChangeRef: React.MutableRefObject<
+    ((itemComposedPath: I['id'][], item: I) => void) | undefined
+  >
+  ItemComponent: React.ComponentType<{ item: I; expanded: boolean }>
 }
 
-export default function Accordion<I extends Item = Item>({
-  expandedItems,
+export default function Accordion<I extends Item>({
   item,
   items,
-  onChange,
-  renderItem,
+  onChangeRef,
+  ItemComponent,
 }: Props<I>) {
   const { id, children } = item
-  const isExpanded = useMemo(
-    () => Boolean(expandedItems?.includes(id)),
-    [expandedItems, id],
-  )
+  const isExpanded = useIsExpanded(id)
+
   const itemComposedPath = useMemo(() => composedPath(items, id), [items, id])
 
   const handleClick = useCallback(() => {
     const nextPath = isExpanded
       ? itemComposedPath.slice(0, -1)
       : itemComposedPath
-    onChange?.(nextPath, item)
-  }, [onChange, itemComposedPath, isExpanded, item])
+    onChangeRef.current?.(nextPath, item)
+  }, [isExpanded, itemComposedPath, onChangeRef, item])
 
   const isExpandable = Boolean(children.length)
 
@@ -47,7 +46,7 @@ export default function Accordion<I extends Item = Item>({
           id={`${id}-trigger`}
           aria-controls={`${id}-section`}
         >
-          {renderItem?.(item, isExpanded)}
+          <ItemComponent item={item} expanded={isExpanded} />
         </button>
       </header>
       {isExpanded && isExpandable && (
@@ -59,21 +58,14 @@ export default function Accordion<I extends Item = Item>({
           {children.map(child => (
             <Accordion
               key={child.id}
-              expandedItems={expandedItems}
               item={child}
               items={items}
-              onChange={onChange}
-              renderItem={renderItem}
+              onChangeRef={onChangeRef}
+              ItemComponent={ItemComponent}
             />
           ))}
         </section>
       )}
     </div>
   )
-}
-
-Accordion.defaultProps = {
-  expandedItems: [],
-  onChange: null,
-  renderItem: null,
 }

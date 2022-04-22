@@ -1,40 +1,44 @@
-import React from 'react'
+import React, { useRef } from 'react'
 import Accordion from './Accordion'
 import type { Item } from './types'
+import { ExpandContext } from './ExpandContext'
 
 interface Props<I extends Item> {
   expandedItems?: I['id'][]
   items: I[]
   onChange?: (itemComposedPath: I['id'][], item: I) => void
-  renderItem?: (item: I, expanded: boolean) => React.ReactNode
+  ItemComponent: React.ComponentType<{ item: I; expanded: boolean }>
 }
 
 export default function TreeView<I extends Item>({
-  expandedItems,
+  expandedItems = [],
   items,
   onChange,
-  renderItem,
+  ItemComponent,
 }: Props<I>) {
+  const onChangeRef = useRef(onChange)
+  if (onChangeRef.current !== onChange) {
+    onChangeRef.current = onChange
+  }
+
   return (
-    <>
+    <ExpandContext.Provider value={expandedItems}>
       {items.map(item => {
         return (
           <Accordion
             key={item.id}
-            expandedItems={expandedItems}
             item={item}
             items={items}
-            onChange={onChange}
-            renderItem={renderItem}
+            onChangeRef={onChangeRef}
+            ItemComponent={ItemComponent}
           />
         )
       })}
-    </>
+    </ExpandContext.Provider>
   )
 }
 
 TreeView.defaultProps = {
   expandedItems: [],
   onChange: null,
-  renderItem: null,
 }

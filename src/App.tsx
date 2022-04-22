@@ -1,28 +1,16 @@
 import React, { useState } from 'react'
 import AccordionItem from './AccordionItem'
-import TreeView, { toTree, composedPath } from './lib'
-
-const DATA_ITEMS: Array<{ id: string; parent?: string }> = [
-  { id: '1' },
-  { id: '1.1', parent: '1' },
-  { id: '1.1.1', parent: '1.1' },
-  { id: '1.1.2', parent: '1.1' },
-  { id: '1.1.3', parent: '1.1' },
-  { id: '1.1.4', parent: '1.1' },
-  { id: '1.2', parent: '1' },
-  { id: '2' },
-  { id: '2.1', parent: '2' },
-  { id: '2.2', parent: '2' },
-  { id: '2.3', parent: '2' },
-  { id: '2.4', parent: '2' },
-  { id: '2.4.1', parent: '2.4' },
-  { id: '2.4.1.1', parent: '2.4.1' },
-  { id: '2.4.1.1.1', parent: '2.4.1.1' },
-]
-
-const IDS = DATA_ITEMS.map(({ id }) => id)
+import TreeView, { toTree, composedPath, flatten } from './lib'
+import { DATA_ITEMS, IDS } from './data'
 
 const items = toTree(DATA_ITEMS)
+
+type ArrayType<A> = A extends Array<infer R> ? R : never
+type CustomItem = ArrayType<typeof items>
+
+function getChildrenIds(item: CustomItem) {
+  return flatten(item.children).map(i => i.id)
+}
 
 function App() {
   const [expandedItems, setExpandedItems] = useState<string[]>([])
@@ -43,43 +31,48 @@ function App() {
     }
   }
 
+  function handleChange(
+    nextExpandedItems: CustomItem['id'][],
+    item: CustomItem,
+  ) {
+    const willExpand = nextExpandedItems.includes(item.id)
+
+    if (willExpand) {
+      setExpandedItems(
+        Array.from(new Set([...nextExpandedItems, ...expandedItems])),
+      )
+      return
+    }
+
+    const itemToExclude = [item.id, ...getChildrenIds(item)]
+    setExpandedItems(expandedItems.filter(id => !itemToExclude.includes(id)))
+  }
+
   return (
     <>
       <h1>Tree view</h1>
       <h2>Open from everywhere</h2>
-      <p>
-        <form onSubmit={handleSubmit}>
-          <label htmlFor="tree-id">
-            ID to open
-            <input
-              type="text"
-              name="tree-id"
-              id="tree-id"
-              defaultValue="2.4.1.1"
-              style={{ marginLeft: 5 }}
-              required
-            />
-          </label>
-          {Boolean(error) && (
-            <span style={{ color: 'red', marginLeft: 5 }}>{error}</span>
-          )}
-        </form>
-      </p>
+      <form onSubmit={handleSubmit}>
+        <label htmlFor="tree-id">
+          ID to open
+          <input
+            type="text"
+            name="tree-id"
+            id="tree-id"
+            defaultValue="2.4.1.1"
+            style={{ marginLeft: 5 }}
+            required
+          />
+        </label>
+        {Boolean(error) && (
+          <span style={{ color: 'red', marginLeft: 5 }}>{error}</span>
+        )}
+      </form>
       <TreeView
         items={items}
-        renderItem={(item, expanded) => (
-          <AccordionItem item={item} expanded={expanded} />
-        )}
+        ItemComponent={AccordionItem}
         expandedItems={expandedItems}
-        onChange={(next, item) => {
-          const willExpand = next.includes(item.id)
-          const nextExpanded = Array.from(new Set([...next, ...expandedItems]))
-          setExpandedItems(
-            willExpand
-              ? nextExpanded
-              : nextExpanded.filter(id => id !== item.id),
-          )
-        }}
+        onChange={handleChange}
       />
     </>
   )

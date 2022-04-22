@@ -12,7 +12,7 @@ export function flatten<I extends Item = Item>(items: I[]): I[] {
 
 const memoizedFlatten = memoize(flatten)
 
-function checkCycle<I extends Item = Item>(items: I[]) {
+function checkForCycle<I extends Item = Item>(items: I[]) {
   const flatItems = memoizedFlatten(items)
 
   for (let index = 0; index < flatItems.length; index += 1) {
@@ -33,12 +33,12 @@ export function composedPath<I extends Item = Item>(
   if (!id) return []
   const flatItems = memoizedFlatten(items)
   const item = flatItems.find(i => i.id === id)
-  checkCycle(items)
+  checkForCycle(items)
   if (!item) return []
   return [...composedPath(items, item.parent), id]
 }
 
-export function getChildren<I extends Item = Item>(
+function getChildren<I extends Item = Item>(
   data: Omit<I, 'children'>[],
   item: I,
 ): I {

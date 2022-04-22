@@ -36,7 +36,11 @@ export default function AccordionItem<I extends Item = Item>({
         cursor: isExpandable ? 'pointer' : 'default',
       }}
     >
-      {isExpandable ? <ExpandIcon isExpanded={expanded} size={18} /> : null}
+      {isExpandable ? (
+        <ExpandIcon isExpanded={expanded} size={18} />
+      ) : (
+        <div style={{ width: 18 }} />
+      )}
       {item.id}
     </div>
   )
